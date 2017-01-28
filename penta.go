@@ -1,18 +1,7 @@
-package pentago
+package main
 
-const (
-	WHITE = 1
-	BLACK = 2
-)
+import "fmt"
 
-const (
-	CLOCKWISE        = iota
-	COUNTERCLOCKWISE = iota
-)
-
-const (
-	UPPERLEFT  = iota
-	UPPERRIGHT = iota
-	LOWERLEFT  = iota
-	LOWERRIGHT = iota
-)
+func main() {
+	fmt.Println("Welcome to Pentago")
+}
