@@ -36,6 +36,101 @@ func TestSetAt(t *testing.T) {
 	}
 }
 
+func TestWinner(t *testing.T) {
+	b := NewBoard()
+
+	b.fields = [6][6]int{
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 1, 1, 1, 1, 1},
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+	}
+
+	if b.Winner() != WHITE {
+		t.Error("Expected winner white horizontally")
+	}
+
+	b.fields = [6][6]int{
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 1, 0, 0, 0, 0},
+		[6]int{0, 1, 0, 0, 0, 0},
+		[6]int{0, 1, 0, 0, 0, 0},
+		[6]int{0, 1, 0, 0, 0, 0},
+		[6]int{0, 1, 0, 0, 0, 0},
+	}
+
+	if b.Winner() != WHITE {
+		t.Error("Expected winner white vertically")
+	}
+
+	b.fields = [6][6]int{
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 1, 0, 0, 0, 0},
+		[6]int{0, 0, 1, 0, 0, 0},
+		[6]int{0, 0, 0, 1, 0, 0},
+		[6]int{0, 0, 0, 0, 1, 0},
+		[6]int{0, 0, 0, 0, 0, 1},
+	}
+
+	if b.Winner() != WHITE {
+		t.Error("Expected winner white diagonally")
+	}
+
+	b.fields = [6][6]int{
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 2, 0},
+		[6]int{0, 0, 1, 2, 0, 0},
+		[6]int{0, 0, 2, 1, 0, 0},
+		[6]int{0, 2, 0, 0, 1, 0},
+		[6]int{2, 0, 0, 0, 0, 1},
+	}
+
+	if b.Winner() != BLACK {
+		t.Error("Expected winner black diagonally")
+	}
+
+	b.fields = [6][6]int{
+		[6]int{0, 1, 0, 0, 0, 0},
+		[6]int{0, 0, 1, 0, 0, 0},
+		[6]int{0, 0, 0, 1, 0, 0},
+		[6]int{0, 0, 0, 0, 1, 0},
+		[6]int{0, 0, 0, 0, 0, 1},
+		[6]int{0, 0, 0, 0, 0, 0},
+	}
+
+	if b.Winner() != WHITE {
+		t.Error("Expected winner white diagonally (small diagonal)")
+	}
+
+	b.fields = [6][6]int{
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 2},
+		[6]int{0, 0, 0, 0, 2, 0},
+		[6]int{0, 0, 0, 2, 0, 0},
+		[6]int{0, 0, 2, 0, 0, 0},
+		[6]int{0, 2, 0, 0, 0, 0},
+	}
+
+	if b.Winner() != BLACK {
+		t.Error("Expected winner black diagonally (small diagonal)")
+	}
+
+	b.fields = [6][6]int{
+		[6]int{0, 1, 0, 1, 0, 0},
+		[6]int{1, 1, 1, 1, 2, 2},
+		[6]int{2, 2, 2, 1, 2, 0},
+		[6]int{0, 0, 0, 2, 0, 0},
+		[6]int{0, 0, 2, 0, 0, 0},
+		[6]int{0, 1, 0, 0, 0, 0},
+	}
+
+	if b.Winner() != 0 {
+		t.Error("Expected to find no winner yet")
+	}
+}
+
 func TestFindSuccessors(t *testing.T) {
 	b := NewBoard()
 	successors := b.findSuccessors()

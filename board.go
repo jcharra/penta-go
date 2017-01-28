@@ -124,3 +124,82 @@ func (b Board) SetAt(row, col int) (Board, error) {
 	bnew.WhitesTurn = !b.WhitesTurn
 	return bnew, nil
 }
+
+func (b Board) Winner() int {
+	// Check row winner
+	for _, row := range b.fields {
+		w := checkWinner(row)
+		if w != 0 {
+			return w
+		}
+	}
+
+	// Check column winner and get diagonals
+	var diag1, diag2 [6]int
+	for i := 0; i < 6; i++ {
+		col := [6]int{b.fields[0][i],
+			b.fields[1][i],
+			b.fields[2][i],
+			b.fields[3][i],
+			b.fields[4][i],
+			b.fields[5][i],
+		}
+		w := checkWinner(col)
+
+		if w != 0 {
+			return w
+		}
+
+		// fill diagonals
+		diag1[i] = b.fields[i][i]
+		diag2[i] = b.fields[5-i][i]
+	}
+
+	// Check winner on 6er-diagonals
+	for _, diag := range [][6]int{diag1, diag2} {
+		wd := checkWinner(diag)
+		if wd != 0 {
+			return wd
+		}
+	}
+
+	// Small diagonals (5 fields)
+	var sd1, sd2, sd3, sd4 [5]int
+	for i := 0; i < 5; i++ {
+		sd1[i] = b.fields[i][i+1]
+		sd2[i] = b.fields[i+1][i]
+		sd3[i] = b.fields[5-i][i+1]
+		sd4[i] = b.fields[4-i][i]
+	}
+
+	for _, sd := range [][5]int{sd1, sd2, sd3, sd4} {
+		if sd[0] != 0 && allEqual(sd[0], sd[1:5]) {
+			return sd[0]
+		}
+	}
+
+	return 0
+}
+
+func checkWinner(arr [6]int) int {
+	cand := arr[1] // only this color can win the row
+	if arr[0] == cand {
+		if allEqual(cand, arr[2:5]) {
+			return cand
+		}
+	} else {
+		if allEqual(cand, arr[2:6]) {
+			return cand
+		}
+	}
+	return 0
+}
+
+func allEqual(val int, arr []int) bool {
+	for i := range arr {
+		if arr[i] != val {
+			return false
+		}
+	}
+	return true
+}
