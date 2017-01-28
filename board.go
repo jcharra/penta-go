@@ -1,18 +1,15 @@
 package pentago
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
 type Board struct {
-	WhitesTurn bool
-	fields     [6][6]int
+	Turn   int
+	fields [6][6]int
 }
 
 func NewBoard() Board {
 	var rows [6][6]int
-	return Board{fields: rows, WhitesTurn: true}
+	return Board{fields: rows, Turn: WHITE}
 }
 
 func (b Board) Repr() string {
@@ -41,13 +38,13 @@ func (b Board) Rotate(quadrant, direction int) Board {
 	if direction == CLOCKWISE {
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
-				b2.fields[offX+i][offY+j] = b.fields[offX+2-j][offY+i]
+				b2.fields[offY+i][offX+j] = b.fields[offY+2-j][offX+i]
 			}
 		}
 	} else if direction == COUNTERCLOCKWISE {
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
-				b2.fields[offX+2-j][offY+i] = b.fields[offX+i][offY+j]
+				b2.fields[offY+2-j][offX+i] = b.fields[offY+i][offX+j]
 			}
 		}
 	}
@@ -99,7 +96,7 @@ func (b Board) equalsRot(b2 Board, rotDegree int) bool {
 
 func (b Board) Copy() Board {
 	bnew := NewBoard()
-	bnew.WhitesTurn = b.WhitesTurn
+	bnew.Turn = b.Turn
 	for rowIdx, row := range b.fields {
 		for colIdx, val := range row {
 			bnew.fields[rowIdx][colIdx] = val
@@ -108,21 +105,18 @@ func (b Board) Copy() Board {
 	return bnew
 }
 
-func (b Board) SetAt(row, col int) (Board, error) {
-	if b.fields[row][col] != 0 {
-		return b, errors.New("Field is occupied")
-	}
-
+func (b Board) SetAt(row, col int) Board {
 	bnew := b.Copy()
 
-	if b.WhitesTurn {
-		bnew.fields[row][col] = WHITE
+	bnew.fields[row][col] = b.Turn
+
+	if b.Turn == WHITE {
+		bnew.Turn = BLACK
 	} else {
-		bnew.fields[row][col] = BLACK
+		bnew.Turn = WHITE
 	}
 
-	bnew.WhitesTurn = !b.WhitesTurn
-	return bnew, nil
+	return bnew
 }
 
 func (b Board) Winner() int {

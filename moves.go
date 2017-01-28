@@ -8,15 +8,14 @@ type Move struct {
 	direction int
 }
 
-func (b Board) findSuccessors() map[Board]Move {
+func FindSuccessors(b Board) map[Board]Move {
 	moves := b.findMoves()
 
 	fmt.Printf("Checking %v moves", len(moves))
 
 	found := make(map[Board]Move, 0)
 	for _, move := range moves {
-		bnew, _ := b.SetAt(move.row, move.col)
-		bnew = bnew.Rotate(move.quadrant, move.direction)
+		bnew := b.SetAt(move.row, move.col).Rotate(move.quadrant, move.direction)
 
 		present := false
 		for bo := range found {
