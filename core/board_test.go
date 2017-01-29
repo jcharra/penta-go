@@ -124,6 +124,19 @@ func TestWinner(t *testing.T) {
 	if b.Winner() != 0 {
 		t.Error("Expected to find no winner yet")
 	}
+
+	b.Fields = [6][6]int{
+		[6]int{1, 1, 1, 1, 1, 0},
+		[6]int{2, 2, 2, 2, 2, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+	}
+
+	if b.Winner() != DRAW {
+		t.Error("Expected a draw, since both players have a winning position")
+	}
 }
 
 func TestRotateClockwise(t *testing.T) {

@@ -5,6 +5,7 @@ import "fmt"
 const (
 	WHITE = 1
 	BLACK = 2
+	DRAW  = 3
 )
 
 const (
@@ -137,11 +138,15 @@ func (b Board) SetAt(row, col int) Board {
 }
 
 func (b Board) Winner() int {
+	// we need to collect all winning position, since multiple
+	// may occur, even from both players, which would draw the game.
+	wins := make(map[int]bool, 0)
+
 	// Check row winner
 	for _, row := range b.Fields {
 		w := checkWinner(row)
 		if w != 0 {
-			return w
+			wins[w] = true
 		}
 	}
 
@@ -158,7 +163,7 @@ func (b Board) Winner() int {
 		w := checkWinner(col)
 
 		if w != 0 {
-			return w
+			wins[w] = true
 		}
 
 		// fill diagonals
@@ -170,7 +175,7 @@ func (b Board) Winner() int {
 	for _, diag := range [][6]int{diag1, diag2} {
 		wd := checkWinner(diag)
 		if wd != 0 {
-			return wd
+			wins[wd] = true
 		}
 	}
 
@@ -185,8 +190,16 @@ func (b Board) Winner() int {
 
 	for _, sd := range [][5]int{sd1, sd2, sd3, sd4} {
 		if sd[0] != 0 && allEqual(sd[0], sd[1:5]) {
-			return sd[0]
+			wins[sd[0]] = true
 		}
+	}
+
+	if wins[WHITE] && wins[BLACK] {
+		return DRAW
+	} else if wins[WHITE] {
+		return WHITE
+	} else if wins[BLACK] {
+		return BLACK
 	}
 
 	return 0
