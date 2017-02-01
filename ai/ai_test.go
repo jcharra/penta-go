@@ -13,10 +13,10 @@ func TestFindWinningMove(t *testing.T) {
 	// First sample board allowing an immediate win for both colors
 	// (even though it couldn't be black's turn, of course)
 	b.Fields = [6][6]int{
-		[6]int{1, 1, 1, 1, 0, 2},
-		[6]int{0, 0, 0, 0, 2, 0},
-		[6]int{0, 0, 0, 2, 0, 0},
-		[6]int{2, 0, 0, 0, 0, 0},
+		[6]int{1, 1, 1, 1, 0, -1},
+		[6]int{0, 0, 0, 0, -1, 0},
+		[6]int{0, 0, 0, -1, 0, 0},
+		[6]int{-1, 0, 0, 0, 0, 0},
 		[6]int{0, 0, 0, 0, 0, 0},
 		[6]int{0, 0, 0, 0, 0, 0},
 	}
@@ -41,7 +41,7 @@ func TestFindWinningMove(t *testing.T) {
 		[6]int{0, 0, 0, 0, 0, 0},
 		[6]int{0, 0, 0, 1, 1, 1},
 		[6]int{0, 1, 0, 0, 0, 0},
-		[6]int{2, 2, 2, 0, 0, 2},
+		[6]int{-1, -1, -1, 0, 0, -1},
 		[6]int{0, 0, 0, 0, 0, 0},
 		[6]int{0, 0, 0, 0, 0, 0},
 	}
@@ -72,8 +72,8 @@ func TestFindMovesDepthOne(t *testing.T) {
 		[6]int{0, 0, 0, 0, 1, 0},
 		[6]int{1, 1, 1, 0, 0, 0},
 		[6]int{0, 0, 0, 0, 0, 0},
-		[6]int{0, 0, 2, 0, 0, 0},
-		[6]int{0, 2, 2, 0, 0, 0},
+		[6]int{0, 0, -1, 0, 0, 0},
+		[6]int{0, -1, -1, 0, 0, 0},
 		[6]int{0, 0, 0, 0, 0, 0},
 	}
 
@@ -89,5 +89,26 @@ func TestFindMovesDepthOne(t *testing.T) {
 
 	if bestMoveWhite.value == winnerValue {
 		t.Error("White should not be able to win after Black's move, but actually was. Black moved ", bestMoveBlack)
+	}
+}
+
+func TestFindMovesDepthTwo(t *testing.T) {
+	b := core.NewBoard()
+
+	b.Fields = [6][6]int{
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 1, 1, 1, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, 0, 0, 0, 0, 0},
+		[6]int{0, -1, 0, 0, -1, 0},
+		[6]int{0, 0, -1, 0, 0, 0},
+	}
+
+	b.Turn = core.WHITE
+
+	bestMoveWhite := FindBestMove(b, 5, 2)
+
+	if bestMoveWhite.value != winnerValue {
+		t.Error("White had a forced win, but moved ", bestMoveWhite)
 	}
 }

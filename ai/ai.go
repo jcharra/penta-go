@@ -1,15 +1,16 @@
 package ai
 
-import (
-	"fmt"
-
-	"github.com/jcharra/pentago/core"
-)
+import "github.com/jcharra/pentago/core"
 
 const centerBonus int = 10
 const chainBonusMiddle int = 5
 const chainBonusOuter int = 3
 const winnerValue int = 1000000
+
+const MaxUint = ^uint(0)
+const MinUint = 0
+const MaxInt = int(MaxUint >> 1)
+const MinInt = -MaxInt - 1
 
 type EvaluatedMove struct {
 	move  core.Move
@@ -19,15 +20,10 @@ type EvaluatedMove struct {
 func FindBestMove(b core.Board, breadth, depth int) EvaluatedMove {
 	succs := core.FindSuccessors(b)
 
-	// worst possible value from moving color's perspective
-	worstEval := -winnerValue * colorSign(b.Turn)
-
-	fmt.Printf("\nFindBestMove in position (turn: %v): \n%v\n\n", b.Turn, b.Repr())
-
 	// This is our list of <breadth> best moves, sorted by their evaluation desc
 	bestMoves := make([]EvaluatedMove, breadth)
 	for i := 0; i < breadth; i++ {
-		bestMoves[i] = EvaluatedMove{value: worstEval}
+		bestMoves[i] = EvaluatedMove{value: getWorstValue(b.Turn)}
 	}
 
 	for board, move := range succs {
@@ -45,30 +41,24 @@ func FindBestMove(b core.Board, breadth, depth int) EvaluatedMove {
 
 	// depth == 0 means we do not recurse and just pick the seemingly best move from our list.
 	if depth == 0 {
-		fmt.Println("\nDepth 0: Best move is ", bestMoves[0])
-		return EvaluatedMove{move: bestMoves[0].move, value: bestMoves[0].value}
+		return bestMoves[0]
 	}
 
 	// Re-evaluate the current list's <breadth> elements by considering the
 	// optimal opponent's move
-	fmt.Printf("\nDepth %v - considering %v", depth, bestMoves)
-
-	bestOpponentEval := worstEval
 	var bestMove EvaluatedMove
-
+	bestEval := getWorstValue(b.Turn)
 	for _, bm := range bestMoves {
 		boardAfterMove := b.SetAt(bm.move.Row, bm.move.Col)
 		opponentMove := FindBestMove(boardAfterMove, breadth, depth-1)
+		bm.value = opponentMove.value
 
-		if better(opponentMove.value, bestOpponentEval, b.Turn) {
-			bestOpponentEval = opponentMove.value
+		if better(bm.value, bestEval, b.Turn) {
 			bestMove = bm
-			// correct bm's estimated value to be the best countermove's evaluation
-			bm.value = opponentMove.value
+			bestEval = bm.value
 		}
 	}
 
-	fmt.Println("\n\nBest move after considering optimal countermove is ", bestMove)
 	return bestMove
 }
 
@@ -78,6 +68,14 @@ func better(a, b, color int) bool {
 		return a > b
 	} else {
 		return a < b
+	}
+}
+
+func getWorstValue(color int) int {
+	if color == core.WHITE {
+		return MinInt
+	} else {
+		return MaxInt
 	}
 }
 

@@ -4,8 +4,8 @@ import "fmt"
 
 const (
 	WHITE = 1
-	BLACK = 2
-	DRAW  = 3
+	BLACK = -1
+	DRAW  = 2
 )
 
 const (
