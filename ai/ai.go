@@ -1,6 +1,8 @@
 package ai
 
-import "github.com/jcharra/pentago/core"
+import (
+	"github.com/jcharra/penta-go/core"
+)
 
 const centerBonus int = 10
 const chainBonusMiddle int = 5

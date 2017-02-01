@@ -3,7 +3,7 @@ package ai
 import (
 	"testing"
 
-	"github.com/jcharra/pentago/core"
+	"github.com/jcharra/penta-go/core"
 )
 
 func TestFindWinningMove(t *testing.T) {
