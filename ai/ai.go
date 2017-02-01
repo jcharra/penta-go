@@ -3,7 +3,7 @@ package ai
 import (
 	"fmt"
 
-	"github.com/jcharra/pentago/core"
+	"github.com/jcharra/penta-go/core"
 )
 
 const centerBonus int = 10
