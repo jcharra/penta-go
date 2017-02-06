@@ -15,7 +15,7 @@ const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
 
 type EvaluatedMove struct {
-	move  core.Move
+	Move  core.Move
 	value int
 }
 
@@ -35,7 +35,7 @@ func FindBestMove(b core.Board, breadth, depth int) EvaluatedMove {
 			if better(val, bestMoves[i].value, b.Turn) {
 				// insert move into list of best moves, pushing out the worst of them
 				copy(bestMoves[i+1:], bestMoves[i:])
-				bestMoves[i] = EvaluatedMove{move: move, value: val}
+				bestMoves[i] = EvaluatedMove{Move: move, value: val}
 				break
 			}
 		}
@@ -51,7 +51,7 @@ func FindBestMove(b core.Board, breadth, depth int) EvaluatedMove {
 	var bestMove EvaluatedMove
 	bestEval := getWorstValue(b.Turn)
 	for _, bm := range bestMoves {
-		boardAfterMove := b.SetAt(bm.move.Row, bm.move.Col)
+		boardAfterMove := b.SetAt(bm.Move.Row, bm.Move.Col)
 		opponentMove := FindBestMove(boardAfterMove, breadth, depth-1)
 		bm.value = opponentMove.value
 

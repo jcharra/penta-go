@@ -1,9 +1,15 @@
 package core
 
+import "fmt"
+
 type Move struct {
 	Row, Col  int
 	Quadrant  int
 	Direction int
+}
+
+func (m Move) Repr() string {
+	return fmt.Sprintf("(%v|%v) Q%v R%v", m.Row, m.Col, m.Quadrant, m.Direction)
 }
 
 func FindSuccessors(b Board) map[Board]Move {

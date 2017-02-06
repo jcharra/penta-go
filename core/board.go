@@ -1,7 +1,5 @@
 package core
 
-import "fmt"
-
 const (
 	WHITE = 1
 	BLACK = -1
@@ -31,9 +29,14 @@ func NewBoard() Board {
 }
 
 func (b Board) Repr() string {
+	ch := map[int]string{0: "_", 1: "O", -1: "X"}
+
 	s := ""
 	for i := 0; i < 6; i++ {
-		s += fmt.Sprintf("\n%v", b.Fields[i])
+		for j := 0; j < 6; j++ {
+			s += ch[b.Fields[i][j]] + " "
+		}
+		s += "\n"
 	}
 	return s
 }
