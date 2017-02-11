@@ -10,6 +10,7 @@ import (
 
 	"github.com/jcharra/penta-go/ai"
 	"github.com/jcharra/penta-go/core"
+	"github.com/jcharra/penta-go/view"
 )
 
 func main() {
@@ -62,7 +63,7 @@ func main() {
 					continue
 				}
 
-				fmt.Printf("\nRotate which quadrant? \n0 1\t\t0 = clockwise\n2 3\t\t1 = counterclockwise\n?")
+				fmt.Println("\nRotate which quadrant? \n0 1\t\t0 = clockwise\n2 3\t\t1 = counterclockwise\n?")
 				scanner.Scan()
 				input = strings.Split(scanner.Text(), " ")
 				if len(input) != 2 {
@@ -96,5 +97,6 @@ func main() {
 
 	} else {
 		fmt.Println("Start server at port", *port)
+		view.RunUI()
 	}
 }
