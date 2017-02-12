@@ -17,7 +17,6 @@ func main() {
 	fmt.Println("Welcome to Pentago")
 
 	interactive := flag.Bool("i", false, "interactive")
-	port := flag.Int("p", 9977, "Start pentago server listening on this port")
 
 	flag.Parse()
 
@@ -96,7 +95,6 @@ func main() {
 		}
 
 	} else {
-		fmt.Println("Start server at port", *port)
 		view.RunUI()
 	}
 }
