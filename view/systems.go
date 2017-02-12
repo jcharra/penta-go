@@ -5,8 +5,8 @@ import (
 	"image/color"
 	"github.com/jcharra/penta-go/core"
 	"engo.io/ecs"
-	"engo.io/engo"
 	"engo.io/engo/common"
+	"engo.io/engo"
 )
 
 type Checker struct {

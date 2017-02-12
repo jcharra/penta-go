@@ -3,14 +3,16 @@ package view
 import (
 	"image/color"
 	"engo.io/ecs"
-	"engo.io/engo"
 	"engo.io/engo/common"
+	"engo.io/engo"
 )
 
-type pentagoScene struct {}
+type pentagoScene struct{}
 
 // Type uniquely defines your game type
-func (*pentagoScene) Type() string { return "pentago" }
+func (*pentagoScene) Type() string {
+	return "pentago"
+}
 
 // Preload is called before loading any assets from the disk, to allow you to register / queue them
 func (*pentagoScene) Preload() {}
