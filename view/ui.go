@@ -1,10 +1,10 @@
 package view
 
 import (
-	"engo.io/ecs"
-	"engo.io/engo"
-	"engo.io/engo/common"
 	"image/color"
+	"github.com/engoengine/engo"
+	"github.com/engoengine/engo/common"
+	"github.com/engoengine/ecs"
 )
 
 type pentagoScene struct {}
