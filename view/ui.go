@@ -23,7 +23,6 @@ func (*pentagoScene) Setup(world *ecs.World) {
 
 	world.AddSystem(&common.RenderSystem{})
 	world.AddSystem(&common.MouseSystem{})
-
 	world.AddSystem(&BoardSystem{})
 }
 

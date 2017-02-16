@@ -6,7 +6,6 @@ import (
 	"engo.io/ecs"
 	"engo.io/engo/common"
 	"engo.io/engo"
-	"fmt"
 )
 
 type Checker struct {
@@ -16,17 +15,18 @@ type Checker struct {
 	color color.Color
 }
 
-type FieldComponent struct {
+type Field struct {
 	ecs.BasicEntity
 	common.RenderComponent
 	common.SpaceComponent
 	common.MouseComponent
-	checker Checker
 }
 
 type BoardSystem struct {
 	world      *ecs.World
-	fields     [6][6]FieldComponent
+	entities   []Checker
+	fields     [6][6]Field
+	checker    [6][6]Checker
 	boardModel core.Board
 }
 
@@ -49,20 +49,22 @@ func (bs *BoardSystem) New(w *ecs.World) {
 
 	// size in pixels
 	fieldSize := float32(150.0)
+	separator := fieldSize/20.0
 
 	for i := 0; i < 6; i++ {
 		for j := 0; j < 6; j++ {
-			bs.fields[i][j] = FieldComponent{}
+			bs.fields[i][j] = Field{}
 			bs.fields[i][j].RenderComponent = common.RenderComponent{
 				Drawable: common.Rectangle{BorderWidth: 1, BorderColor: color.White},
 				Scale:    engo.Point{1.0, 1.0},
 				Color: color.Black,
 			}
 			bs.fields[i][j].SpaceComponent = common.SpaceComponent{
-				Position: engo.Point{fieldSize * float32(i), fieldSize * float32(j)},
+				Position: engo.Point{fieldSize * float32(i) + separator * float32(i/3), fieldSize * float32(j) + separator * float32(j/3)},
 				Width: fieldSize,
 				Height: fieldSize,
 			}
+
 			mouseSys.Add(&bs.fields[i][j].BasicEntity, &bs.fields[i][j].MouseComponent, &bs.fields[i][j].SpaceComponent, nil)
 			renderSys.Add(&bs.fields[i][j].BasicEntity, &bs.fields[i][j].RenderComponent, &bs.fields[i][j].SpaceComponent)
 		}
@@ -72,42 +74,43 @@ func (bs *BoardSystem) New(w *ecs.World) {
 // Update is run every frame, with `dt` being the time
 // in seconds since the last frame
 func (bs *BoardSystem) Update(dt float32) {
+	var renderSystem *common.RenderSystem
 	for _, system := range bs.world.Systems() {
 		switch sys := system.(type) {
 		case *common.RenderSystem:
-			synchronizeBoardView(bs, sys)
+			renderSystem = sys
 		}
 	}
 
 	for i, row := range bs.fields {
 		for j, field := range row {
-			if field.MouseComponent.Released {
-				bs.boardModel = bs.boardModel.SetAt(i, j).Rotate(core.UPPERLEFT, core.CLOCKWISE)
+			if field.MouseComponent.Clicked {
+				if bs.boardModel.Fields[i][j] != 0 {
+					continue;
+				}
+				bs.boardModel = bs.boardModel.SetAt(i, j)
 			}
-		}
-	}
-}
 
-func synchronizeBoardView(bs *BoardSystem, sys *common.RenderSystem) {
-	for i, row := range bs.boardModel.Fields {
-		for j, val := range row {
-			// fc is the corresponding field in the view model
-			fc := bs.fields[i][j]
+			if field.MouseComponent.RightClicked {
+				quad := 0
+				if i > 2 {
+					quad += 2
+				}
+				if j > 2 {
+					quad += 1
+				}
+				bs.boardModel = bs.boardModel.Rotate(quad, 0)
+			}
 
-			actualColor := mappedColor(val)
-			if fc.checker.color == nil {
-				if actualColor != nil {
-					c := createChecker(&fc.SpaceComponent, actualColor)
-					sys.Add(&c.BasicEntity, &c.RenderComponent, &c.SpaceComponent)
+			if bs.boardModel.Fields[i][j] == 0 && bs.checker[i][j].color != nil {
+				bs.checker[i][j].color = nil
+				renderSystem.Remove(bs.checker[i][j].BasicEntity)
+			} else if bs.boardModel.Fields[i][j] != 0 && bs.checker[i][j].color != mappedColor(bs.boardModel.Fields[i][j]) {
+				if bs.checker[i][j].color != nil {
+					renderSystem.Remove(bs.checker[i][j].BasicEntity)
 				}
-			} else {
-				if actualColor == nil {
-					sys.Remove(fc.checker.BasicEntity)
-				} else if actualColor != fc.checker.color {
-					sys.Remove(fc.checker.BasicEntity)
-					c := createChecker(&fc.SpaceComponent, actualColor)
-					sys.Add(&c.BasicEntity, &c.RenderComponent, &c.SpaceComponent)
-				}
+				bs.checker[i][j] = createChecker(&field.SpaceComponent, mappedColor(bs.boardModel.Fields[i][j]))
+				renderSystem.Add(&bs.checker[i][j].BasicEntity, &bs.checker[i][j].RenderComponent, &bs.checker[i][j].SpaceComponent)
 			}
 		}
 	}
@@ -122,9 +125,21 @@ func mappedColor(col int) color.Color {
 	return nil
 }
 
-// Remove is called whenever an Entity is removed from the scene, and thus from this system
-func (*BoardSystem) Remove(e ecs.BasicEntity) {
-	fmt.Println("Should remove entity", e)
+func (b *BoardSystem) Add(c *Checker) {
+	b.entities = append(b.entities, *c)
+}
+
+func (b *BoardSystem) Remove(basic ecs.BasicEntity) {
+	delete := -1
+	for index, e := range b.entities {
+		if e.BasicEntity.ID() == basic.ID() {
+			delete = index
+			break
+		}
+	}
+	if delete >= 0 {
+		b.entities = append(b.entities[:delete], b.entities[delete + 1:]...)
+	}
 }
 
 func createChecker(sc *common.SpaceComponent, col color.Color) (checker Checker) {
@@ -142,5 +157,6 @@ func createChecker(sc *common.SpaceComponent, col color.Color) (checker Checker)
 		Width: size,
 		Height: size,
 	}
+	checker.color = col
 	return checker
 }
