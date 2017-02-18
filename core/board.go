@@ -205,7 +205,17 @@ func (b Board) Winner() int {
 		return BLACK
 	}
 
-	return 0
+	// Game is not decided yet, as long as there is still at least one field unoccupied
+	for i := 0; i < 6; i++ {
+		for j := 0; j < 6; j++ {
+			if b.Fields[i][j] == 0 {
+				return 0
+			}
+		}
+	}
+
+	// All fields are occupied => draw
+	return DRAW
 }
 
 func checkWinner(arr [6]int) int {

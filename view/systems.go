@@ -6,6 +6,7 @@ import (
 	"engo.io/ecs"
 	"engo.io/engo/common"
 	"engo.io/engo"
+	"github.com/jcharra/penta-go/ai"
 )
 
 type Checker struct {
@@ -22,13 +23,36 @@ type Field struct {
 	common.MouseComponent
 }
 
+type StatusLabel struct {
+	ecs.BasicEntity
+	common.RenderComponent
+	common.SpaceComponent
+}
+
 type BoardSystem struct {
 	world      *ecs.World
 	entities   []Checker
 	fields     [6][6]Field
 	checker    [6][6]Checker
+	gameState  int
+	stateLabel StatusLabel
 	boardModel core.Board
 }
+
+const fieldSize float32 = 100.0
+
+// enumeration of ui game states
+const (
+	waitForChecker = iota
+	waitForRotation = iota
+	computerThinking = iota
+	computerSettingChecker = iota
+	computerRotating = iota
+	gameDrawn = iota
+	gameWonPlayer = iota
+	gameWonAI = iota
+	evaluatePosition = iota
+)
 
 // New is the initialisation of the System
 func (bs *BoardSystem) New(w *ecs.World) {
@@ -48,8 +72,7 @@ func (bs *BoardSystem) New(w *ecs.World) {
 	}
 
 	// size in pixels
-	fieldSize := float32(150.0)
-	separator := fieldSize/20.0
+	separator := fieldSize / 20.0
 
 	for i := 0; i < 6; i++ {
 		for j := 0; j < 6; j++ {
@@ -60,7 +83,7 @@ func (bs *BoardSystem) New(w *ecs.World) {
 				Color: color.Black,
 			}
 			bs.fields[i][j].SpaceComponent = common.SpaceComponent{
-				Position: engo.Point{fieldSize * float32(i) + separator * float32(i/3), fieldSize * float32(j) + separator * float32(j/3)},
+				Position: engo.Point{fieldSize * float32(i) + separator * float32(i / 3), fieldSize * float32(j) + separator * float32(j / 3)},
 				Width: fieldSize,
 				Height: fieldSize,
 			}
@@ -69,6 +92,29 @@ func (bs *BoardSystem) New(w *ecs.World) {
 			renderSys.Add(&bs.fields[i][j].BasicEntity, &bs.fields[i][j].RenderComponent, &bs.fields[i][j].SpaceComponent)
 		}
 	}
+
+	fntWhite := &common.Font{
+		URL:  "UbuntuMono-R.ttf",
+		FG:   color.White,
+		Size: 64,
+	}
+	err := fntWhite.CreatePreloaded()
+	if err != nil {
+		panic(err)
+	}
+
+	bs.stateLabel = StatusLabel{BasicEntity: ecs.NewBasic()}
+	bs.stateLabel.RenderComponent.Drawable = common.Text{
+		Font: fntWhite,
+		Text: "Welcome to Pentago",
+	}
+	bs.stateLabel.SetShader(common.HUDShader)
+
+	renderSys.Add(&bs.stateLabel.BasicEntity,
+		&bs.stateLabel.RenderComponent,
+		&common.SpaceComponent{Position: engo.Point{0, fieldSize * 6.0 + 10}})
+
+	bs.gameState = waitForChecker
 }
 
 // Update is run every frame, with `dt` being the time
@@ -82,26 +128,9 @@ func (bs *BoardSystem) Update(dt float32) {
 		}
 	}
 
+	// Synchronize board model and board UI
 	for i, row := range bs.fields {
 		for j, field := range row {
-			if field.MouseComponent.Clicked {
-				if bs.boardModel.Fields[i][j] != 0 {
-					continue;
-				}
-				bs.boardModel = bs.boardModel.SetAt(i, j)
-			}
-
-			if field.MouseComponent.RightClicked {
-				quad := 0
-				if i > 2 {
-					quad += 2
-				}
-				if j > 2 {
-					quad += 1
-				}
-				bs.boardModel = bs.boardModel.Rotate(quad, 0)
-			}
-
 			if bs.boardModel.Fields[i][j] == 0 && bs.checker[i][j].color != nil {
 				bs.checker[i][j].color = nil
 				renderSystem.Remove(bs.checker[i][j].BasicEntity)
@@ -113,6 +142,107 @@ func (bs *BoardSystem) Update(dt float32) {
 				renderSystem.Add(&bs.checker[i][j].BasicEntity, &bs.checker[i][j].RenderComponent, &bs.checker[i][j].SpaceComponent)
 			}
 		}
+	}
+
+	// Handle game state changes
+	if bs.gameState == waitForChecker || bs.gameState == waitForRotation {
+		for i, row := range bs.fields {
+			for j, field := range row {
+				if field.MouseComponent.Clicked {
+
+					if bs.gameState == waitForChecker {
+						if bs.boardModel.Fields[i][j] != 0 {
+							// Attempt to place checker on occupied field => ignore
+							continue;
+						}
+						bs.boardModel = bs.boardModel.SetAt(i, j)
+						bs.gameState = waitForRotation
+					} else {
+						quad := quadrantForIndexes(i, j)
+						bs.boardModel = bs.boardModel.Rotate(quad, 0)
+						bs.gameState = evaluatePosition
+					}
+				} else if field.MouseComponent.RightClicked && bs.gameState == waitForRotation {
+					quad := quadrantForIndexes(i, j)
+					bs.boardModel = bs.boardModel.Rotate(quad, 1)
+					bs.gameState = evaluatePosition
+				}
+			}
+		}
+	} else if bs.gameState == computerThinking {
+		bestMove := ai.FindBestMove(bs.boardModel, 2, 2)
+
+		bs.gameState = computerSettingChecker
+		bs.boardModel = bs.boardModel.SetAt(bestMove.Move.Row, bestMove.Move.Col)
+
+		bs.gameState = computerRotating
+		bs.boardModel = bs.boardModel.Rotate(bestMove.Move.Quadrant, bestMove.Move.Direction)
+
+		bs.gameState = evaluatePosition
+	} else if bs.gameState == evaluatePosition {
+		winner := bs.boardModel.Winner()
+		if winner == core.WHITE {
+			bs.gameState = gameWonPlayer
+		} else if winner == core.BLACK {
+			bs.gameState = gameWonAI
+		} else if winner == core.DRAW {
+			bs.gameState = gameDrawn
+		} else {
+			if bs.boardModel.Turn == core.WHITE {
+				bs.gameState = waitForChecker
+			} else {
+				bs.gameState = computerThinking
+			}
+		}
+	}
+
+	fntWhite := &common.Font{
+		URL:  "UbuntuMono-R.ttf",
+		FG:   color.White,
+		Size: 16,
+	}
+	err := fntWhite.CreatePreloaded()
+	if err != nil {
+		panic(err)
+	}
+
+	bs.stateLabel.RenderComponent.Drawable = common.Text{
+		Font: fntWhite,
+		Text: textForGameState(bs.gameState),
+	}
+}
+
+func quadrantForIndexes(i, j int) int {
+	quad := 0
+	if i > 2 {
+		quad += 2
+	}
+	if j > 2 {
+		quad += 1
+	}
+	return quad
+}
+
+func textForGameState(state int) string {
+	switch (state) {
+	case waitForChecker:
+		return "Place a checker"
+	case waitForRotation:
+		return "Rotate a quadrant (left-click rotates clockwise, right-click counterclockwise)"
+	case computerThinking:
+		return "Planning my next move ..."
+	case computerSettingChecker:
+		return ""
+	case computerRotating:
+		return "Rotating"
+	case gameDrawn:
+		return "The game has ended. It's a draw."
+	case gameWonPlayer:
+		return "You win - congratulations!"
+	case gameWonAI:
+		return "I win - better luck next time!"
+	default:
+		return ""
 	}
 }
 

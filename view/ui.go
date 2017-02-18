@@ -15,7 +15,12 @@ func (*pentagoScene) Type() string {
 }
 
 // Preload is called before loading any assets from the disk, to allow you to register / queue them
-func (*pentagoScene) Preload() {}
+func (*pentagoScene) Preload() {
+	err := engo.Files.Load("UbuntuMono-R.ttf")
+	if err != nil {
+		panic(err)
+	}
+}
 
 // Setup is called before the main loop starts. It allows you to add entities and systems to your Scene.
 func (*pentagoScene) Setup(world *ecs.World) {
