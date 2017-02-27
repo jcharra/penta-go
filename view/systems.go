@@ -7,6 +7,7 @@ import (
 	"engo.io/engo/common"
 	"engo.io/engo"
 	"github.com/jcharra/penta-go/ai"
+	"fmt"
 )
 
 type Checker struct {
@@ -83,7 +84,7 @@ func (bs *BoardSystem) New(w *ecs.World) {
 				Color: color.Black,
 			}
 			bs.fields[i][j].SpaceComponent = common.SpaceComponent{
-				Position: engo.Point{fieldSize * float32(i) + separator * float32(i / 3), fieldSize * float32(j) + separator * float32(j / 3)},
+				Position: engo.Point{fieldSize * float32(j) + separator * float32(j / 3), fieldSize * float32(i) + separator * float32(i / 3)},
 				Width: fieldSize,
 				Height: fieldSize,
 			}
@@ -149,7 +150,6 @@ func (bs *BoardSystem) Update(dt float32) {
 		for i, row := range bs.fields {
 			for j, field := range row {
 				if field.MouseComponent.Clicked {
-
 					if bs.gameState == waitForChecker {
 						if bs.boardModel.Fields[i][j] != 0 {
 							// Attempt to place checker on occupied field => ignore
@@ -159,12 +159,12 @@ func (bs *BoardSystem) Update(dt float32) {
 						bs.gameState = waitForRotation
 					} else {
 						quad := quadrantForIndexes(i, j)
-						bs.boardModel = bs.boardModel.Rotate(quad, 0)
+						bs.boardModel = bs.boardModel.Rotate(quad, core.CLOCKWISE)
 						bs.gameState = evaluatePosition
 					}
 				} else if field.MouseComponent.RightClicked && bs.gameState == waitForRotation {
 					quad := quadrantForIndexes(i, j)
-					bs.boardModel = bs.boardModel.Rotate(quad, 1)
+					bs.boardModel = bs.boardModel.Rotate(quad, core.COUNTERCLOCKWISE)
 					bs.gameState = evaluatePosition
 				}
 			}
