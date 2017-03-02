@@ -7,7 +7,6 @@ import (
 	"engo.io/engo/common"
 	"engo.io/engo"
 	"github.com/jcharra/penta-go/ai"
-	"fmt"
 )
 
 type Checker struct {
