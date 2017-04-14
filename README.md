@@ -1,6 +1,6 @@
 # penta-go
 
-Implementation of the tiny, but surprisingly complex game Pentago (https://en.wikipedia.org/wiki/Pentago).
+Implementation of the tiny, but surprisingly complex game [Pentago](https://en.wikipedia.org/wiki/Pentago) in Go.
 
 ## Installation
 
