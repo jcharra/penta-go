@@ -2,11 +2,12 @@ package view
 
 import (
 	"image/color"
-	"github.com/jcharra/penta-go/core"
+
 	"engo.io/ecs"
-	"engo.io/engo/common"
 	"engo.io/engo"
+	"engo.io/engo/common"
 	"github.com/jcharra/penta-go/ai"
+	"github.com/jcharra/penta-go/core"
 )
 
 type Checker struct {
@@ -30,28 +31,35 @@ type StatusLabel struct {
 }
 
 type BoardSystem struct {
-	world      *ecs.World
-	entities   []Checker
-	fields     [6][6]Field
-	checker    [6][6]Checker
-	gameState  int
-	stateLabel StatusLabel
-	boardModel core.Board
+	world         *ecs.World
+	entities      []Checker
+	fields        [6][6]Field
+	checker       [6][6]Checker
+	gameState     int
+	stateLabel    StatusLabel
+	boardModel    core.Board
+	pendingMove   core.Move
+	pauseDuration float32
 }
 
+// All those const values assume a screen widht/height of 1000px ... not very dynamic
 const fieldSize float32 = 100.0
+const separator float32 = fieldSize / 20.0
+const boardSize float32 = fieldSize*6 + separator*5
+const offsetX float32 = (1000.0 - boardSize) / 2
+const offsetY float32 = 50.0
 
 // enumeration of ui game states
 const (
-	waitForChecker = iota
-	waitForRotation = iota
-	computerThinking = iota
+	waitForChecker         = iota
+	waitForRotation        = iota
+	computerThinking       = iota
 	computerSettingChecker = iota
-	computerRotating = iota
-	gameDrawn = iota
-	gameWonPlayer = iota
-	gameWonAI = iota
-	evaluatePosition = iota
+	computerRotating       = iota
+	gameDrawn              = iota
+	gameWonPlayer          = iota
+	gameWonAI              = iota
+	evaluatePosition       = iota
 )
 
 // New is the initialisation of the System
@@ -71,21 +79,18 @@ func (bs *BoardSystem) New(w *ecs.World) {
 		}
 	}
 
-	// size in pixels
-	separator := fieldSize / 20.0
-
 	for i := 0; i < 6; i++ {
 		for j := 0; j < 6; j++ {
 			bs.fields[i][j] = Field{}
 			bs.fields[i][j].RenderComponent = common.RenderComponent{
 				Drawable: common.Rectangle{BorderWidth: 1, BorderColor: color.White},
 				Scale:    engo.Point{1.0, 1.0},
-				Color: color.Black,
+				Color:    color.Black,
 			}
 			bs.fields[i][j].SpaceComponent = common.SpaceComponent{
-				Position: engo.Point{fieldSize * float32(j) + separator * float32(j / 3), fieldSize * float32(i) + separator * float32(i / 3)},
-				Width: fieldSize,
-				Height: fieldSize,
+				Position: engo.Point{offsetX + fieldSize*float32(j) + separator*float32(j/3), offsetY + fieldSize*float32(i) + separator*float32(i/3)},
+				Width:    fieldSize,
+				Height:   fieldSize,
 			}
 
 			mouseSys.Add(&bs.fields[i][j].BasicEntity, &bs.fields[i][j].MouseComponent, &bs.fields[i][j].SpaceComponent, nil)
@@ -112,7 +117,7 @@ func (bs *BoardSystem) New(w *ecs.World) {
 
 	renderSys.Add(&bs.stateLabel.BasicEntity,
 		&bs.stateLabel.RenderComponent,
-		&common.SpaceComponent{Position: engo.Point{0, fieldSize * 6.0 + 10}})
+		&common.SpaceComponent{Position: engo.Point{5, 5}})
 
 	bs.gameState = waitForChecker
 }
@@ -144,6 +149,14 @@ func (bs *BoardSystem) Update(dt float32) {
 		}
 	}
 
+	// Pause, if necesssary
+	bs.pauseDuration -= dt
+	if bs.pauseDuration > 0 {
+		return
+	} else if bs.pauseDuration < 0 {
+		bs.pauseDuration = 0.0
+	}
+
 	// Handle game state changes
 	if bs.gameState == waitForChecker || bs.gameState == waitForRotation {
 		for i, row := range bs.fields {
@@ -152,32 +165,37 @@ func (bs *BoardSystem) Update(dt float32) {
 					if bs.gameState == waitForChecker {
 						if bs.boardModel.Fields[i][j] != 0 {
 							// Attempt to place checker on occupied field => ignore
-							continue;
+							continue
 						}
 						bs.boardModel = bs.boardModel.SetAt(i, j)
 						bs.gameState = waitForRotation
 					} else {
 						quad := quadrantForIndexes(i, j)
-						bs.boardModel = bs.boardModel.Rotate(quad, core.CLOCKWISE)
+						bs.boardModel = bs.boardModel.Rotate(quad, core.COUNTERCLOCKWISE)
 						bs.gameState = evaluatePosition
 					}
 				} else if field.MouseComponent.RightClicked && bs.gameState == waitForRotation {
 					quad := quadrantForIndexes(i, j)
-					bs.boardModel = bs.boardModel.Rotate(quad, core.COUNTERCLOCKWISE)
+					bs.boardModel = bs.boardModel.Rotate(quad, core.CLOCKWISE)
 					bs.gameState = evaluatePosition
 				}
 			}
 		}
 	} else if bs.gameState == computerThinking {
-		bestMove := ai.FindBestMove(bs.boardModel, 2, 2)
 
+		bs.pendingMove = ai.FindBestMove(bs.boardModel, 2, 2).Move
 		bs.gameState = computerSettingChecker
-		bs.boardModel = bs.boardModel.SetAt(bestMove.Move.Row, bestMove.Move.Col)
 
+	} else if bs.gameState == computerSettingChecker {
+
+		bs.boardModel = bs.boardModel.SetAt(bs.pendingMove.Row, bs.pendingMove.Col)
 		bs.gameState = computerRotating
-		bs.boardModel = bs.boardModel.Rotate(bestMove.Move.Quadrant, bestMove.Move.Direction)
+		bs.pauseDuration = 0.5
 
+	} else if bs.gameState == computerRotating {
+		bs.boardModel = bs.boardModel.Rotate(bs.pendingMove.Quadrant, bs.pendingMove.Direction)
 		bs.gameState = evaluatePosition
+
 	} else if bs.gameState == evaluatePosition {
 		winner := bs.boardModel.Winner()
 		if winner == core.WHITE {
@@ -191,6 +209,8 @@ func (bs *BoardSystem) Update(dt float32) {
 				bs.gameState = waitForChecker
 			} else {
 				bs.gameState = computerThinking
+				// pause for a second before computer moves
+				bs.pauseDuration = 1.0
 			}
 		}
 	}
@@ -223,11 +243,11 @@ func quadrantForIndexes(i, j int) int {
 }
 
 func textForGameState(state int) string {
-	switch (state) {
+	switch state {
 	case waitForChecker:
 		return "Place a checker"
 	case waitForRotation:
-		return "Rotate a quadrant (left-click rotates clockwise, right-click counterclockwise)"
+		return "Rotate a quadrant (left-click: counterclockwise, right-click: clockwise)"
 	case computerThinking:
 		return "Planning my next move ..."
 	case computerSettingChecker:
@@ -247,9 +267,9 @@ func textForGameState(state int) string {
 
 func mappedColor(col int) color.Color {
 	if col == core.WHITE {
-		return color.RGBA{R: 255, G:0, B:0, A:255}
+		return color.RGBA{R: 255, G: 0, B: 0, A: 255}
 	} else if col == core.BLACK {
-		return color.RGBA{R: 0, G:255, B:0, A:255}
+		return color.RGBA{R: 0, G: 255, B: 0, A: 255}
 	}
 	return nil
 }
@@ -267,7 +287,7 @@ func (b *BoardSystem) Remove(basic ecs.BasicEntity) {
 		}
 	}
 	if delete >= 0 {
-		b.entities = append(b.entities[:delete], b.entities[delete + 1:]...)
+		b.entities = append(b.entities[:delete], b.entities[delete+1:]...)
 	}
 }
 
@@ -276,15 +296,15 @@ func createChecker(sc *common.SpaceComponent, col color.Color) (checker Checker)
 	checker.RenderComponent = common.RenderComponent{
 		Drawable: common.Circle{BorderWidth: 20, BorderColor: col},
 		Scale:    engo.Point{1.0, 1.0},
-		Color: color.Black,
+		Color:    color.Black,
 	}
 
 	size := sc.Width * 0.5
 	offset := (sc.Width - size) / 2
 	checker.SpaceComponent = common.SpaceComponent{
 		Position: engo.Point{sc.Position.X + offset, sc.Position.Y + offset},
-		Width: size,
-		Height: size,
+		Width:    size,
+		Height:   size,
 	}
 	checker.color = col
 	return checker

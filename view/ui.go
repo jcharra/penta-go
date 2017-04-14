@@ -2,9 +2,10 @@ package view
 
 import (
 	"image/color"
+
 	"engo.io/ecs"
-	"engo.io/engo/common"
 	"engo.io/engo"
+	"engo.io/engo/common"
 )
 
 type pentagoScene struct{}
@@ -34,8 +35,8 @@ func (*pentagoScene) Setup(world *ecs.World) {
 func RunUI() {
 	opts := engo.RunOptions{
 		Title:  "Pentago",
-		Width:  900,
-		Height: 900,
+		Width:  1000,
+		Height: 800,
 	}
 
 	engo.Run(opts, &pentagoScene{})
