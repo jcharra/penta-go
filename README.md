@@ -6,7 +6,7 @@ Implementation of the tiny, but surprisingly complex game [Pentago](https://en.w
 
 Of course you need to have [Go](https://golang.org/) installed.
 
-Then you have to call the following command (you might need to execute it*twice*, I haven't found out why).
+Then you have to call the following command (you might need to execute it *twice*, I haven't found out why).
 
 ```
 go get github.com/jcharra/penta-go
