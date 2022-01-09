@@ -3,9 +3,8 @@ package view
 import (
 	"image/color"
 
-	"engo.io/ecs"
-	"engo.io/engo"
-	"engo.io/engo/common"
+	"github.com/EngoEngine/engo"
+	"github.com/EngoEngine/engo/common"
 )
 
 type pentagoScene struct{}
@@ -24,12 +23,14 @@ func (*pentagoScene) Preload() {
 }
 
 // Setup is called before the main loop starts. It allows you to add entities and systems to your Scene.
-func (*pentagoScene) Setup(world *ecs.World) {
+func (*pentagoScene) Setup(world engo.Updater) {
 	common.SetBackground(color.Black)
 
+	/* CONTINUE HERE
 	world.AddSystem(&common.RenderSystem{})
 	world.AddSystem(&common.MouseSystem{})
 	world.AddSystem(&BoardSystem{})
+	*/
 }
 
 func RunUI() {
